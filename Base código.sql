@@ -320,7 +320,4 @@ SET Precio = (
 );
 UPDATE Factura
 SET cobro =precio - (descuento/100)*precio + (impuestos/100)*precio --Simplemente calcula el cobro final pasando el descuento y los impuestos a porcentaje y los suma y los resta respectivamente
-SELECT*
-FROM dbo.Factura
-SELECT*
-FROM dbo.Infactura
+
