@@ -27,6 +27,8 @@ CREATE TABLE Categoria(
 	Nombre CHAR(40) NOT NULL, --Agrega un nombre, en este caso del tipo CHAR y como máximo 40 caracteres
 )
 
+-- El resto de las tablas tienen una lógica parecida a la anterior, se comentarán solo los casos puntuales que son distintos
+
 --Creación de la tabla territorio
 CREATE TABLE Territorio(
 	ID_territorio INT NOT NULL  CONSTRAINT id_tet PRIMARY KEY,
@@ -48,35 +50,36 @@ CREATE TABLE Cliente(
 CREATE TABLE Subcategoria(
 	ID_subcategoria INT NOT NULL  CONSTRAINT id_subcat PRIMARY KEY,
 	Nombre CHAR(40) NOT NULL,
-	ID_categoria INT NOT NULL, CONSTRAINT fk_categoroa FOREIGN KEY (ID_categoria) REFERENCES Categoria(ID_categoria)
+	ID_categoria INT NOT NULL, CONSTRAINT fk_categoroa FOREIGN KEY (ID_categoria) REFERENCES Categoria(ID_categoria) --Llave foránea para conectar de alfguna forma la categorìa con la subcategorìa
 )
 
 
 --Creación de la tabla proveedor
 -- Esta tabla depende de territorio, por lo tanto requiere de una llave foránea
 CREATE TABLE Proveedor(
-	Cedula INT NOT NULL CONSTRAINT ced_prov PRIMARY KEY CHECK (LEN(cedula) <11 and LEN(Cedula)>8),--Se agrega un check para combrobar que la cedula no sea demasiado larga o demasiado corta
+	Cedula INT NOT NULL CONSTRAINT ced_prov PRIMARY KEY CHECK (LEN(cedula) <11 and LEN(Cedula)>8),
 	Tipo_cedula CHAR(8) NOT NULL, 
 	Nombre CHAR(40)NOT NULL, 
 	Correo CHAR(30) NOT NULL, 
-	NTelefono INT NOT NULL CHECK (LEN(NTelefono)=8),--La longitud de los teléfonos en costa rica siempre es de 8 caracteres, por lo cual se puede mantener como un valor fijo y por eso el checkL)
+	NTelefono INT NOT NULL CHECK (LEN(NTelefono)=8),
 	ID_territorio INT NOT NULL, CONSTRAINT fk_Territorio FOREIGN KEY (ID_Territorio) REFERENCES Territorio(ID_territorio))
 
 --Creación de tabla de producto
---Depende de subcategoría y de categoría requiere dos llaves foráneas 
+--Depende de subcategoría y de categoría requiere una llave foráneas 
 CREATE TABLE Producto(
-    Numero_prod INT NOT NULL IDENTITY,
+    Numero_prod INT NOT NULL IDENTITY, -- La función IDENTITY lo que hace es contar las filas introducidas, en este caso va de 1 en 1, esta columna se llena automáticamente.
     Nombre CHAR(20) NOT NULL, 
     Precio INT NOT NULL,
     Color CHAR(10) NOT NULL,
-    Tamannio INT,
+    Tamannio INT,-- Puede ser null en caso de ser un producto virtual
+
     IDuniv CHAR(10) NOT NULL,
-    ID_producto AS CONCAT(Numero_prod, IDuniv) PERSISTED, -- Definición de la columna calculada
+    ID_producto AS CONCAT(Numero_prod, IDuniv) PERSISTED, -- Decidí hacer esta columna así para que el ID producto sea una mezcla entre el ID UNIVERSAL que da el proveedor y el número de producto. PERSISTED sirve para que SQL almacene la columna en memoria
     ID_subcategoria INT NOT NULL,
     CONSTRAINT fk_subcategoria FOREIGN KEY (ID_subcategoria) REFERENCES Subcategoria(ID_subcategoria)
 )
 ALTER TABLE Producto 
-ADD CONSTRAINT id_prod PRIMARY KEY (ID_producto)
+ADD CONSTRAINT id_prod PRIMARY KEY (ID_producto) --Esta fila agrega la llave primaria a la tabla de ID Producto externamente, solo es una forma diferente de agregar las llaver primarias.
 
 
 --Creación de tabla de producto
@@ -84,10 +87,10 @@ ADD CONSTRAINT id_prod PRIMARY KEY (ID_producto)
 CREATE TABLE Factura(
 	num_fact INT NOT NULL IDENTITY CONSTRAINT n_f PRIMARY KEY,
 	inf_prod CHAR(100) NOT NULL,
-	precio INT, --Este valor si puede ser null porque se calcula con apoyo de la tabla intermedia InFactura
-	cobro DECIMAL(10,2),
-	impuestos  DECIMAL(10,2) CHECK(impuestos>0 and impuestos <100),
-	descuento  DECIMAL(10,2) CHECK(descuento>0 and descuento <100),
+	precio INT, --Este valor si puede ser null porque se calcula con apoyo de la tabla intermedia InFactura, después en el codigo se añaden los precios, no hace falta llenar la tabla
+	cobro DECIMAL(10,2), --Cobro es el precio a pagartomando en cuenta rebajos e impuestos debe ser decimal porque es muy probable que con los cambios no quede un número entero, esta columna se deja vacía y se actualiza después
+	impuestos  DECIMAL(10,2) CHECK(impuestos>0 and impuestos <100),--Se revisa que los impuestos no sean negativos o mayores que 100, puesto que esto no tiene sentido, se hace decimal para facilitar el calculo del costo final
+	descuento  DECIMAL(10,2) CHECK(descuento>0 and descuento <100),--Se revisa que los descuentos no sean negativos o mayores que 100, puesto que esto no tiene sentido, se hace decimal para facilitar el calculo del costo final
 	fecha DATE NOT NULL,
 	Cedula INT NOT NULL, CONSTRAINT fk_cedula FOREIGN KEY (Cedula) REFERENCES cliente(Cedula))
 
@@ -104,7 +107,7 @@ CREATE TABLE Infactura(
 	ID_producto VARCHAR(22) NOT NULL, CONSTRAINT fk_producto2 FOREIGN KEY (ID_producto) REFERENCES producto(ID_producto))
 
 CREATE TABLE Infproveedores(
-	inf_prov INT NOT NULL IDENTITY(1000,100) PRIMARY KEY,
+	inf_prov INT NOT NULL IDENTITY(1000,100) PRIMARY KEY,--Este IDENTITY es un poco distinto, lo que hace es empezar a sumar desde 1000 y de 100 en 100, se hace así para que no muchas llaves seaan iguales.
 	u_compradas INT NOT NULL,
 	ID_producto VARCHAR(22) NOT NULL, CONSTRAINT fk_producto3 FOREIGN KEY (ID_producto) REFERENCES producto(ID_producto),
 	Cedula INT NOT NULL, CONSTRAINT fk_cedula2 FOREIGN KEY (Cedula) REFERENCES Proveedor(Cedula))
@@ -117,17 +120,16 @@ CREATE TABLE Infproveedores(
 
 --Hay que agregar los datos, para probar  
 
+-- La forma de introducir datos a una tabla siempre es la misma, se indican las columnas a llenar y se le asignan valores deseados o correspondientes. 
 -- Tabla Categoria
-INSERT INTO Categoria(ID_categoria,Nombre)
-values (1,'Romance')
+INSERT INTO Categoria(ID_categoria,Nombre) --Se escoge la tabla y las columnas 
+values (1,'Romance')-- Se asignan values 
 INSERT INTO Categoria( ID_categoria,Nombre)
 values(2,'Superheroes')
 INSERT INTO Categoria(ID_categoria,Nombre)
 values (3,'Acción')
 INSERT INTO Categoria(ID_categoria,Nombre)
 values(4,'Manga')
-SELECT *
-FROM dbo.Categoria
 
 -- Tabla Territorio
 INSERT INTO Territorio(ID_territorio,Provincia,Canton,Distrito)
@@ -138,8 +140,7 @@ INSERT INTO Territorio(ID_territorio,Provincia,Canton,Distrito)
 values (551,'Guanacaste','Liberia','Mayorgo')
 INSERT INTO Territorio(ID_territorio,Provincia,Canton,Distrito)
 values (661,'Puntarenas','Puntarenas','Pitahaya')
-SELECT *
-FROM dbo.Territorio
+
 
 -- Tabla Cliente
 INSERT INTO Cliente(Cedula,Tipo_cedula,Nombre,Correo, NTelefono,Direccion)
@@ -150,8 +151,7 @@ INSERT INTO Cliente(Cedula,Tipo_cedula,Nombre,Correo, NTelefono,Direccion)
 VALUES(118460905,'Fisica','Lionel Messi','leomessi@hotmail.com',70156068,'Tibas, 300 metros al norte del estadio Ricardo Saprissa')
 INSERT INTO Cliente(Cedula,Tipo_cedula,Nombre,Correo, NTelefono,Direccion)
 VALUES(2118460906,'Juridica','Walmart SA','walmart@gmail.com',70156069,'Walmart de Heredia')
-SELECT * 
-FROM dbo.Cliente
+
 
 -- Tabla SubCategoria
 INSERT INTO Subcategoria(ID_subcategoria,Nombre,ID_categoria)
@@ -170,35 +170,26 @@ INSERT INTO Subcategoria(ID_subcategoria,Nombre,ID_categoria)
 VALUES(106,'Guerra',3)
 INSERT INTO Subcategoria(ID_subcategoria,Nombre,ID_categoria)
 VALUES(107,'Isekai',4)
-SELECT*
-FROM dbo.Subcategoria
+
 
 -- Tabla Provedor
 INSERT INTO Proveedor(Cedula,Tipo_cedula,Nombre,Correo,NTelefono,ID_territorio)
 Values(218460903,'Fisica','Andrés z','andresg@ffff.com',88305141,111)
-
 INSERT INTO Proveedor(Cedula,Tipo_cedula,Nombre,Correo,NTelefono,ID_territorio)
 Values(218460904,'Fisica','Alan z','alan@ffff.com',88355142,441)
-
 INSERT INTO Proveedor(Cedula,Tipo_cedula,Nombre,Correo,NTelefono,ID_territorio)
 Values(1218460905,'Juridica','Cristiano Ronaldo','elbicho@siu.com',88305143,551)
-
 INSERT INTO Proveedor(Cedula,Tipo_cedula,Nombre,Correo,NTelefono,ID_territorio)
 Values(1218460906,'Juridica','Ash Ketchum','pokemon@nintendo.com',88355144,111)
-
 INSERT INTO Proveedor(Cedula,Tipo_cedula,Nombre,Correo,NTelefono,ID_territorio)
 Values(218460907,'Fisica','Hernán z','Hernan@ffff.com',88305141,111)
-
 INSERT INTO Proveedor(Cedula,Tipo_cedula,Nombre,Correo,NTelefono,ID_territorio)
 Values(218460908,'Fisica','Nahomy z','Nahomy@ffff.com',88355142,441)
-
 INSERT INTO Proveedor(Cedula,Tipo_cedula,Nombre,Correo,NTelefono,ID_territorio)
 Values(1218460909,'Juridica','Keylor navas','keylor@navas.com',88305143,551)
-
 INSERT INTO Proveedor(Cedula,Tipo_cedula,Nombre,Correo,NTelefono,ID_territorio)
 Values(1218460910,'Juridica','Michael Jackson','jackson5@musica.com',88355144,111)
-SELECT*
-FROM dbo.Proveedor
+
 
 -- Tabla Producto
 INSERT INTO Producto(Nombre,Precio,Color,Tamannio,IDuniv,ID_subcategoria)
@@ -217,8 +208,7 @@ INSERT INTO Producto(Nombre,Precio,Color,Tamannio,IDuniv,ID_subcategoria)
 VALUES('Call of duty',1000,'Amarillo',100,8000,106)
 INSERT INTO Producto(Nombre,Precio,Color,Tamannio,IDuniv,ID_subcategoria)
 VALUES('Isekai',500,'Blanco',56,1000,107)
-SELECT*
-FROM dbo.Producto
+
 
 -- Insertar datos en la tabla "Factura"
 INSERT INTO Factura (inf_prod, impuestos, descuento, fecha, Cedula)
@@ -235,8 +225,7 @@ INSERT INTO Factura (inf_prod, impuestos, descuento, fecha, Cedula)
 VALUES('Vengadores', 5, 5, '2015-09-15', 118460905)
 INSERT INTO Factura (inf_prod, impuestos, descuento, fecha, Cedula)
 VALUES('Dragon Ball y mas', 35, 10, '2022-11-07', 2118460906)
-SELECT * 
-FROM dbo.Factura
+
 
 
 -- Insertar datos en la tabla "Infactura"
@@ -263,8 +252,7 @@ VALUES (12, 7, 45000)
 INSERT INTO Infactura (u_comp, num_fact, ID_producto)
 VALUES (2, 7, 34000)
 
-SELECT*
-FROM dbo.Infactura
+
 
 -- Insertar datos en la tabla "Infproveedores
 INSERT INTO Infproveedores(u_compradas,ID_producto,Cedula)
@@ -297,8 +285,7 @@ INSERT INTO Infproveedores(u_compradas,ID_producto,Cedula)
 VALUES (800, 78000, 1218460909)
 INSERT INTO Infproveedores(u_compradas,ID_producto,Cedula)
 VALUES (900, 81000, 1218460910)
-SELECT*
-FROM dbo.Infproveedores
+
 
 
 
@@ -307,8 +294,7 @@ UPDATE Infactura
 SET Infactura.precio_final = Infactura.u_comp * Producto.Precio
 FROM Infactura
 INNER JOIN Producto  ON Infactura.ID_producto = Producto.ID_producto;
-SELECT*
-FROM dbo.Infactura
+
 
 -- Estos dos bloques de código añaden a factura el precio de todos los productos comprados y el cobro final tomando en cuenta descuentos e impuestos 
 
@@ -320,7 +306,4 @@ SET Precio = (
 );
 UPDATE Factura
 SET cobro =precio - (descuento/100)*precio + (impuestos/100)*precio --Simplemente calcula el cobro final pasando el descuento y los impuestos a porcentaje y los suma y los resta respectivamente
-SELECT*
-FROM dbo.Factura
-SELECT*
-FROM dbo.Infactura
+
